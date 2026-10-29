@@ -53,12 +53,14 @@ class LockFileAuditor
             ];
         }
 
-        $allPackages = array_merge(
-            $data['packages'] ?? [],
-            $data['packages-dev'] ?? []
-        );
+        $packages = is_array($data['packages'] ?? null) ? $data['packages'] : [];
+        $packagesDev = is_array($data['packages-dev'] ?? null) ? $data['packages-dev'] : [];
+        $allPackages = array_merge($packages, $packagesDev);
 
         foreach ($allPackages as $pkg) {
+            if (!is_array($pkg)) {
+                continue;
+            }
             $name = $pkg['name'] ?? 'unknown';
             if ($this->config->isPackageWhitelisted($name)) {
                 continue;

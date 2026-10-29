@@ -120,6 +120,36 @@ run_test("ReDoS Resistance & Sub-50ms Execution on 50,000-char Strings", functio
     assert($elapsedMs < 50.0, "Scan must complete in < 50ms without ReDoS backtracking (took {$elapsedMs}ms)");
 });
 
+// 5. Garbage Data Fuzzing on composer.lock
+run_test("Garbage Data Fuzzing & Malformed Lock-File Handling", function() use ($config) {
+    $auditor = new LockFileAuditor($config);
+
+    // Case A: Missing lock file
+    $resA = $auditor->audit('/non_existent_file_path_' . uniqid() . '.lock');
+    assert(!empty($resA) && $resA[0]['type'] === 'MISSING_LOCK_FILE');
+
+    // Case B: Corrupted JSON
+    $corruptedFile = tempnam(sys_get_temp_dir(), 'corrupt_lock_');
+    file_put_contents($corruptedFile, '{"packages": [BROKEN_JSON');
+    $resB = $auditor->audit($corruptedFile);
+    unlink($corruptedFile);
+    assert(!empty($resB) && $resB[0]['type'] === 'CORRUPTED_LOCK_FILE');
+
+    // Case C: Garbage type confusion (packages is a string instead of array)
+    $typeConfusedFile = tempnam(sys_get_temp_dir(), 'type_confuse_');
+    file_put_contents($typeConfusedFile, json_encode(['packages' => 'garbage_string', 'packages-dev' => 12345]));
+    $resC = $auditor->audit($typeConfusedFile);
+    unlink($typeConfusedFile);
+    assert(is_array($resC), "Type confused lock must return array without crashing");
+
+    // Case D: Packages containing invalid element types
+    $pkgElementFile = tempnam(sys_get_temp_dir(), 'pkg_elem_');
+    file_put_contents($pkgElementFile, json_encode(['packages' => ['not_an_array', 42, null, true]]));
+    $resD = $auditor->audit($pkgElementFile);
+    unlink($pkgElementFile);
+    assert(is_array($resD), "Invalid package elements must be safely ignored");
+});
+
 echo "\n--------------------------------------------------------\n";
 echo "Chaos Results: {$passed} Passed, {$failed} Failed\n";
 echo "--------------------------------------------------------\n";
