@@ -109,6 +109,17 @@ run_test("False Positive Resistance on Non-PHP / Asset Payloads", function() use
     assert(empty($findings), "Valid base64 data-URI must not be flagged as a backdoor");
 });
 
+// 4. ReDoS Immunity on Extreme Adversarial Strings (50,000 chars)
+run_test("ReDoS Resistance & Sub-50ms Execution on 50,000-char Strings", function() use ($config) {
+    $scanner = new VendorBackdoorScanner($config);
+    // Adversarial nested traversal pattern and long repetitive whitespace
+    $adversarialContent = "<?php " . str_repeat('/../../vendor/..', 3000) . str_repeat(' ', 20000) . "// normal comment\n";
+    $start = microtime(true);
+    $findings = $scanner->analyzeFileContent('redos_test.php', $adversarialContent);
+    $elapsedMs = (microtime(true) - $start) * 1000;
+    assert($elapsedMs < 50.0, "Scan must complete in < 50ms without ReDoS backtracking (took {$elapsedMs}ms)");
+});
+
 echo "\n--------------------------------------------------------\n";
 echo "Chaos Results: {$passed} Passed, {$failed} Failed\n";
 echo "--------------------------------------------------------\n";
