@@ -188,6 +188,7 @@ Customize thresholds and manage whitelisted internal packages:
 
 ### 🔗 Related Open-Source Projects by Anton Barinov
 
+- **[Franken-Leak-Hunter](https://github.com/Anton-Barinov/Franken-Leak-Hunter)**: Memory leak and cross-request state pollution detector for FrankenPHP, RoadRunner, and Laravel Octane.
 - **[EOL-PHP-Armor](https://github.com/Anton-Barinov/EOL-PHP-Armor)**: 1-line automated security hub & hotpatching engine for EOL PHP (5.4–8.1).
 - **[php2shell-patches](https://github.com/Anton-Barinov/php2shell-patches)**: Backported C-patches for CVE-2026-109618 / CVE-2026-109619.
 - **[PHP-Hardening-Kit](https://github.com/Anton-Barinov/PHP-Hardening-Kit)**: Modular defense-in-depth runtime WAF security kit for PHP.
