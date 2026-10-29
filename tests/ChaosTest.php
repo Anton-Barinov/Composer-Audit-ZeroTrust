@@ -37,10 +37,10 @@ function run_test(string $name, callable $fn): void {
 
 $config = new AuditConfig();
 
-// 1. Stress test with 1,000 package composer.lock
-run_test("1,000 Package composer.lock Stress & Memory Benchmark", function() use ($config) {
+// 1. Stress test with 2,000 package composer.lock
+run_test("2,000 Package composer.lock Stress & Memory Benchmark", function() use ($config) {
     $packages = [];
-    for ($i = 1; $i <= 1000; $i++) {
+    for ($i = 1; $i <= 2000; $i++) {
         $packages[] = [
             'name'        => "vendor-{$i}/package-{$i}",
             'version'     => "v1." . ($i % 10) . ".0",
@@ -74,8 +74,8 @@ run_test("1,000 Package composer.lock Stress & Memory Benchmark", function() use
 
     unlink($tempFile);
 
-    assert(empty($findings), "Clean 1000 packages should produce zero findings");
-    assert($duration < 2.0, "1,000 package audit took {$duration}s (must be < 2.0s)");
+    assert(empty($findings), "Clean 2000 packages should produce zero findings");
+    assert($duration < 2.5, "2,000 package audit took {$duration}s (must be < 2.5s)");
     assert($memUsed < 32.0, "Memory used {$memUsed}MB (must be < 32MB)");
 });
 
