@@ -1,0 +1,129 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Composer-Audit-ZeroTrust CLI Binary
+ * Part of Composer-Audit-ZeroTrust by Anton Barinov <https://github.com/Anton-Barinov>
+ */
+
+declare(strict_types=1);
+
+// PSR-4 Autoloader for standalone execution
+spl_autoload_register(function ($class) {
+    $prefix = 'ComposerZeroTrust\\';
+    $baseDir = dirname(__DIR__) . '/src/';
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
+use ComposerZeroTrust\Config\AuditConfig;
+use ComposerZeroTrust\ZeroTrustEngine;
+
+$version = '1.0.0';
+
+function showBanner(): void {
+    echo "\033[1;36m";
+    echo "  ██████╗ ███████╗██████╗  ██████╗     ████████╗██████╗ ██╗   ██╗███████╗████████╗\n";
+    echo "  ╚════██╗██╔════╝██╔══██╗██╔═══██╗    ╚══██╔══╝██╔══██╗██║   ██║██╔════╝╚══██╔══╝\n";
+    echo "   █████╔╝█████╗  ██████╔╝██║   ██║       ██║   ██████╔╝██║   ██║███████╗   ██║   \n";
+    echo "  ██╔═══╝ ██╔══╝  ██╔══██╗██║   ██║       ██║   ██╔══██╗██║   ██║╚════██║   ██║   \n";
+    echo "  ███████╗███████╗██║  ██║╚██████╔╝       ██║   ██║  ██║╚██████╔╝███████║   ██║   \n";
+    echo "  ╚══════╝╚══════╝╚═╝  ╚═╝ ╚═════╝        ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝   \n";
+    echo "\033[0m";
+    echo "  \033[1mComposer-Audit-ZeroTrust: Supply-Chain Security & Typosquatting Auditor\033[0m\n";
+    echo "  Version: \033[1;32mv1.0.0\033[0m | Maintainer: \033[1;33mAnton Barinov\033[0m | GitHub: \033[1;34mgithub.com/Anton-Barinov/Composer-Audit-ZeroTrust\033[0m\n\n";
+}
+
+function showUsage(): void {
+    showBanner();
+    echo "\033[1mUSAGE:\033[0m\n";
+    echo "  composer-zerotrust <command> [path] [options]\n\n";
+    echo "\033[1mCOMMANDS:\033[0m\n";
+    echo "  \033[1;32mscan\033[0m [path]           Full supply-chain audit (typosquatting + vendor + lockfile)\n";
+    echo "  \033[1;32mtyposquat\033[0m [path]      Scan exclusively for typosquatted and homoglyph packages\n";
+    echo "  \033[1;32mvendor-inspect\033[0m [path] Heuristic scan of vendor/ for web-shells and obfuscation\n";
+    echo "  \033[1;32mci\033[0m [path]             Strict CI/CD mode (silent on success, non-zero exit on threats)\n";
+    echo "  \033[1;32mversion\033[0m               Show version\n\n";
+    echo "\033[1mOPTIONS:\033[0m\n";
+    echo "  --json                Emit machine-readable JSON output\n";
+    echo "  --fail-on=<LEVEL>     Exit with code 1 if findings meet severity (CRITICAL, HIGH, ANY)\n";
+    echo "  --help                Show this help screen\n\n";
+    echo "\033[1mEXAMPLES:\033[0m\n";
+    echo "  composer-zerotrust scan .\n";
+    echo "  composer-zerotrust ci /var/www/my-project --json\n";
+    echo "  composer-zerotrust typosquat . --fail-on=CRITICAL\n";
+}
+
+$argv = $_SERVER['argv'];
+$command = $argv[1] ?? 'help';
+
+if (in_array('--help', $argv, true) || in_array('-h', $argv, true) || $command === 'help') {
+    showUsage();
+    exit(0);
+}
+
+if (in_array('--version', $argv, true) || in_array('-v', $argv, true) || $command === 'version') {
+    echo "Composer-Audit-ZeroTrust v{$version} by Anton Barinov\n";
+    exit(0);
+}
+
+$isJson = in_array('--json', $argv, true);
+$targetPath = '.';
+
+// Find path argument
+for ($i = 2; $i < count($argv); $i++) {
+    if (!str_starts_with($argv[$i], '--')) {
+        $targetPath = $argv[$i];
+        break;
+    }
+}
+
+if (!is_dir($targetPath)) {
+    if ($isJson) {
+        echo json_encode(['status' => 'error', 'message' => "Target directory not found: {$targetPath}"]);
+    } else {
+        echo "\033[1;31mError: Directory '{$targetPath}' does not exist.\033[0m\n";
+    }
+    exit(1);
+}
+
+$config = AuditConfig::loadFromPath($targetPath);
+$engine = new ZeroTrustEngine($config);
+
+if (!$isJson && $command !== 'ci') {
+    showBanner();
+}
+
+$report = $engine->runAudit($targetPath);
+
+if ($isJson) {
+    echo $report->toJson() . "\n";
+} else {
+    echo $report->toCliOutput();
+}
+
+// Check CI exit code conditions
+if ($command === 'ci' || in_array('--fail-on=CRITICAL', $argv, true)) {
+    if ($report->hasCriticalFindings()) {
+        exit(1);
+    }
+} elseif (in_array('--fail-on=HIGH', $argv, true)) {
+    if ($report->getRiskScore() >= 40) {
+        exit(1);
+    }
+} elseif (in_array('--fail-on=ANY', $argv, true)) {
+    if (!empty($report->getFindings())) {
+        exit(1);
+    }
+}
+
+exit(0);

@@ -1,0 +1,35 @@
+{
+  "name": "anton-barinov/composer-audit-zerotrust",
+  "description": "Zero-Trust Supply-Chain Security & Typosquatting Auditor for Composer dependencies",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Anton Barinov",
+      "email": "55404783+Anton-Barinov@users.noreply.github.com",
+      "homepage": "https://github.com/Anton-Barinov"
+    }
+  ],
+  "keywords": [
+    "composer",
+    "security",
+    "supply-chain",
+    "zerotrust",
+    "typosquatting",
+    "backdoor",
+    "audit",
+    "packagist",
+    "malware"
+  ],
+  "bin": [
+    "bin/composer-zerotrust"
+  ],
+  "autoload": {
+    "psr-4": {
+      "ComposerZeroTrust\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0.0"
+  }
+}

@@ -1,0 +1,33 @@
+name: 'Composer-Audit-ZeroTrust'
+description: 'Zero-Trust Supply-Chain Security & Typosquatting Auditor for Composer dependencies'
+author: 'Anton Barinov'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to the directory containing composer.json and composer.lock'
+    required: false
+    default: '.'
+  fail-on:
+    description: 'Minimum severity level to trigger action failure (CRITICAL, HIGH, ANY)'
+    required: false
+    default: 'CRITICAL'
+  json-output:
+    description: 'Whether to emit JSON output'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Composer-Audit-ZeroTrust
+      shell: bash
+      run: |
+        CMD="php ${{ github.action_path }}/bin/composer-zerotrust scan ${{ inputs.path }} --fail-on=${{ inputs.fail-on }}"
+        if [ "${{ inputs.json-output }}" = "true" ]; then
+          CMD="$CMD --json"
+        fi
+        eval "$CMD"
