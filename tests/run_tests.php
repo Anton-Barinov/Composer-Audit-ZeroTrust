@@ -15,6 +15,7 @@ $tests = [
     'BackdoorScannerTest.php',
     'LockFileAuditorTest.php',
     'CliIntegrationTest.php',
+    'ChaosTest.php',
 ];
 
 $allPassed = true;

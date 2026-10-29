@@ -76,12 +76,16 @@ class VendorBackdoorScanner
     {
         $findings = [];
 
-        // 1. Critical Obfuscated Execution Patterns (eval + decompress / decode)
+        // 1. Critical Obfuscated Execution Patterns (eval + decompress / decode / hex / callbacks)
         $obfuscationPatterns = [
-            'EVAL_BASE64_OBFUSCATION' => '/eval\s*\(\s*(?:base64_decode|gzinflate|gzuncompress|str_rot13)\s*\(/i',
-            'ASSERT_BASE64_EXEC'      => '/assert\s*\(\s*(?:base64_decode|gzinflate|str_rot13)\s*\(/i',
-            'PREG_REPLACE_EVAL'       => '/preg_replace\s*\(\s*[\'"][^\'"]*\/e[\'"]\s*,/i',
-            'CREATE_FUNCTION_EVAL'    => '/create_function\s*\([^,]+,\s*(?:base64_decode|gzinflate)/i',
+            'EVAL_BASE64_OBFUSCATION'       => '/eval\s*\(\s*(?:base64_decode|gzinflate|gzuncompress|str_rot13)\s*\(/i',
+            'ASSERT_BASE64_EXEC'            => '/assert\s*\(\s*(?:base64_decode|gzinflate|str_rot13)\s*\(/i',
+            'PREG_REPLACE_EVAL'             => '/preg_replace\s*\(\s*[\'"][^\'"]*\/e[\'"]\s*,/i',
+            'CREATE_FUNCTION_EVAL'          => '/create_function\s*\([^,]+,\s*(?:base64_decode|gzinflate)/i',
+            'HEX_ENCODED_EXECUTION'         => '/(?:\\\\x65\\\\x76\\\\x61\\\\x6c|eval\s*\(\s*[\'"]?\\\\x[0-9a-f]{2})/i',
+            'VARIABLE_FUNCTION_DISPATCH'    => '/\$\$\w+\s*\(\s*\$_(?:GET|POST|REQUEST|COOKIE)\[/i',
+            'ARRAY_CALLBACK_DISPATCH'       => '/(?:array_map|array_filter|array_walk)\s*\(\s*[^,]+,\s*[\'"](?:assert|system|passthru|shell_exec)[\'"]\s*\)/i',
+            'REFLECTION_CALL_DISPATCH'      => '/new\s+\\\\?ReflectionFunction\s*\(\s*[\'"](?:system|exec|passthru|shell_exec|assert)[\'"]\s*\)/i',
         ];
 
         foreach ($obfuscationPatterns as $type => $pattern) {
